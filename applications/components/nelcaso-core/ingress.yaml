@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: core
+  namespace: nelcaso
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  labels:
+    app.kubernetes.io/name: core
+    app.kubernetes.io/instance: core
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - core.dev.example.com  # Update this with your actual domain
+      secretName: core-tls
+  rules:
+    - host: core.dev.example.com  # Update this with your actual domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: core
+                port:
+                  name: http
