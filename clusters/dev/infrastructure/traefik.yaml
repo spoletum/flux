@@ -13,6 +13,7 @@ spec:
   dependsOn:
     - name: infrastructure-sources
     - name: infrastructure-cert-manager
+    - name: infrastructure-tempo
   patches:
     - target:
         kind: HelmRelease

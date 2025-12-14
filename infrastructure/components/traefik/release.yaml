@@ -25,6 +25,14 @@ spec:
     remediation:
       retries: 3
   values:
+    tracing:
+      serviceName: traefik
+      propagation: w3c
+      openTelemetry:
+        address: tempo.tempo.svc.cluster.local:4317
+        grpc: true
+        insecure: true
+      sampling: 1.0
     service:
       annotations:
         load-balancer.hetzner.cloud/name: dev
