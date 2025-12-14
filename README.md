@@ -1,64 +1,79 @@
 # Flux GitOps Repository
 
-This repository manages infrastructure and applications using FluxCD v2 with a multi-environment capable structure.
+This repository manages infrastructure and applications using FluxCD v2 with a multi-environment structure.
 
 ## Repository Structure
 
 ```
 flux/
-├── infrastructure/                  # Shared infrastructure base
-│   ├── sources/                    # HelmRepository definitions (shared)
+├── infrastructure/                  # Shared infrastructure components
+│   ├── sources/                    # HelmRepository definitions
 │   │   ├── jetstack.yaml
 │   │   ├── traefik.yaml
 │   │   ├── goauthentik.yaml
 │   │   ├── external-secrets.yaml
 │   │   └── dapr.yaml
-│   └── base/                       # Base component configurations
-│       ├── cert-manager/           # cert-manager v1.19.2
-│       ├── traefik/                # Traefik v37.4.0
-│       ├── authentik/              # Authentik v2025.10.2
-│       ├── external-secrets/       # External Secrets Operator v0.10.9
-│       └── dapr/                   # Dapr v1.14.4
+│   └── components/                 # Reusable component definitions
+│       ├── cert-manager/           # cert-manager
+│       │   ├── namespace.yaml
+│       │   ├── release.yaml
+│       │   ├── letsencrypt-issuer.yaml
+│       │   └── kustomization.yaml
+│       ├── traefik/                # Traefik ingress controller
+│       ├── authentik/              # Authentik SSO provider
+│       └── dapr/                   # Dapr runtime
 └── clusters/                       # Environment-specific configurations
     └── dev/                        # Development environment
-        ├── flux-system/            # Flux system components
-        ├── infrastructure.yaml     # Infrastructure Kustomizations
-        └── infrastructure/         # Environment-specific overlays
-            ├── traefik/           # Traefik patches for dev
-            └── authentik/         # Authentik config for dev
+        ├── flux-system/            # Flux bootstrap components
+        ├── kustomization.yaml      # Entry point - references infrastructure/
+        └── infrastructure/         # Kustomization CRs per component
+            ├── sources.yaml        # Deploys infrastructure/sources
+            ├── cert-manager.yaml   # Deploys infrastructure/components/cert-manager
+            ├── dapr.yaml           # Deploys infrastructure/components/dapr
+            ├── traefik.yaml        # Deploys infrastructure/components/traefik + dev patches
+            └── kustomization.yaml  # Lists all CRs above
 ```
 
 ## Architecture
 
-### Base Infrastructure
-All infrastructure components are defined once in `infrastructure/base/`. Each component includes:
-- Namespace definition
-- HelmRelease specification
-- Component-specific configurations
+### Component-Based Infrastructure
+Each infrastructure component (cert-manager, traefik, dapr, etc.) is defined once in `infrastructure/components/`. Components are:
+- Self-contained with namespace, release, and config
+- Deployed via separate Flux Kustomization CRs
+- Independently reconciled and versioned
 
-### Environment Overlays
-Each cluster has its own overlay directory that:
-- References the base infrastructure via Kustomize
-- Applies environment-specific patches
-- Can override values, change versions, or disable components
+### Environment-Specific Kustomization CRs
+Each environment (`clusters/dev/`, `clusters/prod/`, etc.) contains Flux Kustomization CRs that:
+- Reference shared components via `path: ./infrastructure/components/{component}`
+- Apply environment-specific patches inline
+- Manage dependencies via `dependsOn`
+- Reconcile independently with their own schedules
+
+### Dependency Management
+Flux automatically handles deployment order:
+```
+infrastructure-sources (Helm repos)
+    ↓
+infrastructure-cert-manager
+infrastructure-dapr
+    ↓
+infrastructure-traefik (depends on cert-manager)
+```
 
 ### Benefits
-- **DRY Principle**: Infrastructure defined once, reused everywhere
-- **Environment Parity**: Same base ensures consistency across environments
-- **Easy Customization**: JSON patches for environment-specific changes
-- **Version Control**: All changes tracked in Git
-- **Declarative**: Flux continuously reconciles desired state
+- **Independent reconciliation**: Each component syncs on its own schedule
+- **Clear visibility**: `flux get kustomizations` shows status of each component
+- **Isolated patches**: Environment-specific changes live in the Kustomization CR
+- **Explicit dependencies**: `dependsOn` ensures correct deployment order
+- **Easy troubleshooting**: Each component has its own status and logs
 
 ## Components
 
-### Shared Infrastructure
+### Infrastructure Components
 1. **cert-manager** - TLS certificate management with Let's Encrypt
-2. **External Secrets Operator** - Sync secrets from external providers
-3. **Dapr** - Distributed application runtime for microservices
-
-### Environment-Specific
-4. **Traefik** - Ingress controller (patched per environment)
-5. **Authentik** - SSO provider (configured per environment)
+2. **Dapr** - Distributed application runtime for microservices
+3. **Traefik** - Ingress controller (environment-specific patches applied)
+4. **Authentik** - SSO provider (environment-specific configuration)
 
 ## Bootstrap New Environment
 
@@ -84,49 +99,62 @@ Copy the `clusters/dev` directory as a template and adjust the patches.
 
 ## Customizing Per Environment
 
+Environment-specific changes are applied as patches in the Kustomization CRs located in `clusters/{environment}/infrastructure/`.
+
 ### Example: Change Traefik Load Balancer Name
 
-Edit `clusters/{environment}/infrastructure/traefik/kustomization.yaml`:
+Edit `clusters/dev/infrastructure/traefik.yaml`:
 
 ```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
+apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-resources:
-  - ../../../infrastructure/base/traefik
-patches:
-  - target:
-      kind: HelmRelease
-      name: traefik
-    patch: |-
-      - op: repdev
-        path: /spec/values/service/annotations/load-balancer.hetzner.cloud~1name
-        value: my-custom-name
+metadata:
+  name: infrastructure-traefik
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./infrastructure/components/traefik
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: infrastructure-sources
+    - name: infrastructure-cert-manager
+  patches:
+    - target:
+        kind: HelmRelease
+        name: traefik
+      patch: |-
+        - op: replace
+          path: /spec/values/service/annotations/load-balancer.hetzner.cloud~1name
+          value: prod
 ```
 
 ### Example: Override Helm Chart Version
 
 ```yaml
-patches:
-  - target:
-      kind: HelmRelease
-      name: traefik
-    patch: |-
-      - op: replace
-        path: /spec/chart/spec/version
-        value: 38.0.0
+  patches:
+    - target:
+        kind: HelmRelease
+        name: traefik
+      patch: |-
+        - op: replace
+          path: /spec/chart/spec/version
+          value: 38.0.0
 ```
 
 ### Example: Add Environment-Specific Values
 
 ```yaml
-patches:
-  - target:
-      kind: HelmRelease
-      name: traefik
-    patch: |-
-      - op: add
-        path: /spec/values/replicas
-        value: 3
+  patches:
+    - target:
+        kind: HelmRelease
+        name: traefik
+      patch: |-
+        - op: add
+          path: /spec/values/replicas
+          value: 3
 ```
 
 ## Secret Management
@@ -172,18 +200,48 @@ flux reconcile kustomization flux-system --with-source
 
 ## Adding New Components
 
-1. **Add HelmRepository** to `infrastructure/sources/`
-2. **Create base configuration** in `infrastructure/base/{component}/`
-3. **Update** `infrastructure/kustomization.yaml` to include new component
-4. **Create environment overlays** in `clusters/{env}/infrastructure/{component}/`
-5. **Add Kustomization** to `clusters/{env}/infrastructure.yaml`
+1. **Add HelmRepository** to `infrastructure/sources/` (if needed)
+2. **Create component directory** in `infrastructure/components/{component}/`:
+   ```
+   infrastructure/components/myapp/
+   ├── namespace.yaml
+   ├── release.yaml
+   └── kustomization.yaml
+   ```
+3. **Create Kustomization CR** in `clusters/dev/infrastructure/myapp.yaml`:
+   ```yaml
+   apiVersion: kustomize.toolkit.fluxcd.io/v1
+   kind: Kustomization
+   metadata:
+     name: infrastructure-myapp
+     namespace: flux-system
+   spec:
+     interval: 10m
+     path: ./infrastructure/components/myapp
+     prune: true
+     sourceRef:
+       kind: GitRepository
+       name: flux-system
+     dependsOn:
+       - name: infrastructure-sources
+   ```
+4. **Add to kustomization** in `clusters/dev/infrastructure/kustomization.yaml`:
+   ```yaml
+   resources:
+     - sources.yaml
+     - cert-manager.yaml
+     - dapr.yaml
+     - traefik.yaml
+     - myapp.yaml  # Add this
+   ```
+5. **Commit and reconcile**: Flux will automatically deploy the new component
 
 ## Deployment Order
 
-Flux manages dependencies automatically:
+Flux manages dependencies automatically via `dependsOn` in Kustomization CRs:
 1. `infrastructure-sources` - All Helm repositories
-2. `infrastructure-external-secrets`, `infrastructure-dapr`, `infrastructure-cert-manager` - Parallel
-3. `infrastructure-traefik`, `infrastructure-authentik` - Parallel (after sources)
+2. `infrastructure-cert-manager`, `infrastructure-dapr` - Parallel (depend on sources)
+3. `infrastructure-traefik` - Depends on sources + cert-manager
 
 ## Troubleshooting
 
@@ -218,10 +276,13 @@ kubectl get secret sops-age -n flux-system
 sops -d clusters/spoletum-net/infrastructure/authentik/secret.yaml
 ```
 
-## Migration Notes
+## Design Principles
 
-This repository was migrated from a single-environment structure to multi-environment:
-- Old: `spoletum.net/infrastructure/` (environment-specific)
-- New: `infrastructure/base/` (shared) + `clusters/{env}/infrastructure/` (overlays)
+This repository follows these conventions:
 
-The old `spoletum.net/` directory can be removed after verifying the new structure works.
+1. **Component-based architecture**: Each infrastructure component is self-contained in `infrastructure/components/`
+2. **Kustomization CRs over overlays**: Use Flux Kustomization resources with inline patches instead of deep kustomize overlay hierarchies
+3. **Explicit dependencies**: Always specify `dependsOn` to control deployment order
+4. **Environment isolation**: Each environment is a separate cluster directory with its own Kustomization CRs
+5. **Minimal nesting**: Avoid deep directory structures - keep paths simple and relative paths short
+6. **Git as source of truth**: All changes go through Git, Flux reconciles automatically
