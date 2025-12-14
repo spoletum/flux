@@ -288,6 +288,211 @@ flux get kustomizations  # Check all are Ready
 - **HelmRelease names**: Match component name (e.g., `traefik`, `cert-manager`)
 - **Namespaces**: Usually match component name
 
+## Gateway API and TLS Configuration
+
+This repository uses **Kubernetes Gateway API** (not traditional Ingress) with Traefik as the Gateway controller.
+
+### Gateway Configuration in Traefik
+
+The Gateway resource is **auto-created by the Traefik Helm chart**, not as a separate manifest.
+
+✅ **Correct way** - Configure in Traefik HelmRelease values:
+```yaml
+# infrastructure/components/traefik/release.yaml
+spec:
+  values:
+    providers:
+      kubernetesGateway:
+        enabled: true
+    gateway:
+      enabled: true
+      listeners:
+        web:
+          port: 8000
+          protocol: HTTP
+          namespacePolicy:
+            from: All  # Allow HTTPRoutes from all namespaces
+        websecure:
+          port: 8443
+          protocol: HTTPS
+          namespacePolicy:
+            from: All
+          certificateRefs:
+            - name: my-app-tls
+              kind: Secret
+          mode: Terminate
+```
+
+❌ **DON'T** create a separate Gateway manifest in `infrastructure/components/traefik/gateway.yaml` - Traefik manages this.
+
+### HTTPRoute Configuration
+
+HTTPRoutes live in application components and reference the Gateway:
+
+```yaml
+# applications/components/myapp/route.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: myapp
+  namespace: myapp
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure  # Reference the HTTPS listener
+  hostnames:
+    - myapp.dev.spoletum.net
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: myapp-service
+          port: 8080
+```
+
+### TLS Certificate Configuration
+
+Certificates are managed by cert-manager and must be created in the **same namespace as the Gateway** (traefik).
+
+```yaml
+# applications/components/myapp/certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: myapp-tls
+  namespace: traefik  # MUST be in traefik namespace, not app namespace
+spec:
+  secretName: myapp-tls
+  issuerRef:
+    name: letsencrypt  # Use the correct ClusterIssuer name
+    kind: ClusterIssuer
+  dnsNames:
+    - myapp.dev.spoletum.net
+```
+
+**Important**: The certificate secret is created in the traefik namespace because that's where the Gateway needs to read it from.
+
+### ReferenceGrant for Cross-Namespace Access
+
+When HTTPRoute (in app namespace) needs to reference Services (in app namespace) via Gateway (in traefik namespace):
+
+```yaml
+# applications/components/myapp/route.yaml (append to same file)
+---
+apiVersion: gateway.networking.k8s.io/v1beta1  # Note: v1beta1, not v1
+kind: ReferenceGrant
+metadata:
+  name: traefik-to-myapp
+  namespace: myapp  # App namespace
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: traefik  # Gateway namespace
+  to:
+    - group: ""  # Core API group (for Services)
+      kind: Service
+      # Note: NO namespace field here - grants access to Services in this namespace
+```
+
+### Complete Application Component Structure
+
+```
+applications/components/myapp/
+├── namespace.yaml          # Create app namespace
+├── deployment.yaml         # Application workload
+├── service.yaml            # ClusterIP service
+├── route.yaml              # HTTPRoute + ReferenceGrant
+├── certificate.yaml        # Certificate (in traefik namespace!)
+└── kustomization.yaml      # Lists all resources
+```
+
+### Adding HTTPS to an Existing Application
+
+1. **Create Certificate** (in traefik namespace):
+   ```yaml
+   apiVersion: cert-manager.io/v1
+   kind: Certificate
+   metadata:
+     name: myapp-tls
+     namespace: traefik
+   spec:
+     secretName: myapp-tls
+     issuerRef:
+       name: letsencrypt
+       kind: ClusterIssuer
+     dnsNames:
+       - myapp.example.com
+   ```
+
+2. **Update Traefik Gateway** to reference the certificate:
+   ```yaml
+   # Via patch in clusters/dev/infrastructure/traefik.yaml OR
+   # Update base infrastructure/components/traefik/release.yaml
+   spec:
+     values:
+       gateway:
+         listeners:
+           websecure:
+             certificateRefs:
+               - name: myapp-tls
+                 kind: Secret
+   ```
+
+3. **Update HTTPRoute** to use websecure listener:
+   ```yaml
+   spec:
+     parentRefs:
+       - name: traefik-gateway
+         namespace: traefik
+         sectionName: websecure  # Use HTTPS listener
+   ```
+
+4. **Add ReferenceGrant** if app is in different namespace than Gateway.
+
+### Common Pitfalls
+
+❌ **Creating Certificate in app namespace** - Must be in traefik namespace  
+❌ **Using wrong API version** - ReferenceGrant is `v1beta1`, HTTPRoute is `v1`  
+❌ **Adding namespace field to ReferenceGrant.to** - Schema doesn't support it  
+❌ **Wrong ClusterIssuer name** - Check `kubectl get clusterissuer` first  
+❌ **Forgetting namespacePolicy** - Gateway won't accept routes from other namespaces  
+❌ **Creating manual Gateway resource** - Let Traefik Helm chart manage it  
+
+### Troubleshooting Commands
+
+```bash
+# Check Gateway status
+kubectl get gateway -A
+kubectl describe gateway traefik-gateway -n traefik
+
+# Check HTTPRoute acceptance
+kubectl get httproute -A
+kubectl describe httproute myapp -n myapp
+
+# Check certificate issuance
+kubectl get certificate -n traefik
+kubectl describe certificate myapp-tls -n traefik
+
+# Check Traefik logs for Gateway errors
+kubectl logs -n traefik -l app.kubernetes.io/name=traefik --tail=50 | grep -i gateway
+
+# Test HTTPS endpoint
+curl -v https://myapp.example.com
+```
+
+### Restarting Traefik After Certificate Changes
+
+If certificates are added after Gateway creation, restart Traefik:
+```bash
+kubectl rollout restart deployment traefik -n traefik
+```
+
+The Gateway should auto-detect new certificates, but restart if needed.
+
 ## Summary for AI Agents
 
 When working with this repository:
@@ -297,5 +502,7 @@ When working with this repository:
 4. **Dependencies matter**: Always specify `dependsOn`
 5. **Commit before reconcile**: Flux reads from Git
 6. **Test locally**: Use `kustomize build` to validate before pushing
+7. **Gateway API**: Configure Gateway in Traefik Helm values, not separate manifests
+8. **TLS Certificates**: Always create in traefik namespace, not app namespace
 
 This architecture scales well, keeps environments synchronized, and makes troubleshooting straightforward.
