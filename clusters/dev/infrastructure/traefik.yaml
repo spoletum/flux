@@ -21,3 +21,22 @@ spec:
         - op: replace
           path: /spec/values/service/annotations/load-balancer.hetzner.cloud~1name
           value: dev
+        - op: add
+          path: /spec/values/gatewayAPI
+          value:
+            enabled: true
+        - op: add
+          path: /spec/values/gateway
+          value:
+            enabled: true
+            name: traefik-gateway
+            listeners:
+              web:
+                port: 8000
+                protocol: HTTP
+              websecure:
+                port: 8443
+                protocol: HTTPS
+                allowedRoutes:
+                  namespaces:
+                    from: All
