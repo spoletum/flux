@@ -7,4 +7,5 @@ resources:
   - traefik.yaml
   - authentik.yaml
   - tempo.yaml
+  - prometheus.yaml
   - grafana.yaml

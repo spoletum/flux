@@ -6,3 +6,4 @@ resources:
   - goauthentik.yaml
   - dapr.yaml
   - grafana.yaml
+  - prometheus-community.yaml

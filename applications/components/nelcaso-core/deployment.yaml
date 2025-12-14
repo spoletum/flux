@@ -22,6 +22,10 @@ spec:
         dapr.io/app-id: nelcaso-core
         dapr.io/app-port: "8080"
         dapr.io/enabled: "true"
+        dapr.io/config: "tracing"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
     spec:
       imagePullSecrets:
         - name: ghcr-pull-secret

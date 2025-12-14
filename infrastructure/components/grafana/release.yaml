@@ -25,17 +25,26 @@ spec:
     remediation:
       retries: 3
   values:
-    # Datasource configuration to connect to Tempo
+    # Datasource configuration
     datasources:
       datasources.yaml:
         apiVersion: 1
         datasources:
+          - name: Prometheus
+            type: prometheus
+            access: proxy
+            url: http://prometheus-server.prometheus:80
+            isDefault: true
+            editable: true
           - name: Tempo
             type: tempo
             access: proxy
             url: http://tempo.tempo:3200
             isDefault: false
             editable: true
+            jsonData:
+              tracesToLogsV2:
+                datasourceUid: prometheus
     
     # Minimal resource configuration
     resources:
