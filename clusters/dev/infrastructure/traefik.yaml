@@ -1,0 +1,23 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure-traefik
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./infrastructure/base/traefik
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: infrastructure-sources
+    - name: infrastructure-cert-manager
+  patches:
+    - target:
+        kind: HelmRelease
+        name: traefik
+      patch: |-
+        - op: replace
+          path: /spec/values/service/annotations/load-balancer.hetzner.cloud~1name
+          value: dev
