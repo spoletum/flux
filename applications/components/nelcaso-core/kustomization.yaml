@@ -5,6 +5,5 @@ resources:
   - ghcr-pull-secret.sops.yaml
   - deployment.yaml
   - service.yaml
-  - middleware.yaml
   - route.yaml
   - dapr-configuration.yaml
