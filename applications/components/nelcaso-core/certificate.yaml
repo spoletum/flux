@@ -6,7 +6,7 @@ metadata:
 spec:
   secretName: nelcaso-core-tls
   issuerRef:
-    name: letsencrypt-prod
+    name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
     - nelcaso.dev.spoletum.net
