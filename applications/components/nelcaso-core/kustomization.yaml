@@ -7,3 +7,4 @@ resources:
   - service.yaml
   - route.yaml
   - dapr-configuration.yaml
+  - dapr-configuration.yaml
