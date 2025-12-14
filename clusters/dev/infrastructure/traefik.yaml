@@ -34,9 +34,15 @@ spec:
               web:
                 port: 8000
                 protocol: HTTP
+                allowedRoutes:
+                  namespaces:
+                    from: All
               websecure:
                 port: 8443
                 protocol: HTTPS
                 allowedRoutes:
                   namespaces:
                     from: All
+                certificateRefs:
+                  - name: nelcaso-core-tls
+                    kind: Secret
