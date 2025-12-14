@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./infrastructure/base/dapr
+  path: ./infrastructure/components/dapr
   prune: true
   sourceRef:
     kind: GitRepository
