@@ -1,12 +1,14 @@
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: nelcaso-core-tls
+  name: wildcard-dev-spoletum-tls
   namespace: traefik
 spec:
-  secretName: nelcaso-core-tls
+  secretName: wildcard-dev-spoletum-tls
   issuerRef:
     name: letsencrypt
     kind: ClusterIssuer
   dnsNames:
-    - nelcaso.dev.spoletum.net
+    - "*.dev.spoletum.net"
+    - dev.spoletum.net

@@ -48,6 +48,6 @@ spec:
           namespacePolicy:
             from: All
           certificateRefs:
-            - name: nelcaso-core-tls
+            - name: wildcard-dev-spoletum-tls
               kind: Secret
           mode: Terminate
