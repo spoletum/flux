@@ -31,23 +31,3 @@ spec:
         load-balancer.hetzner.cloud/location: hel1
         load-balancer.hetzner.cloud/protocol: tcp
         load-balancer.hetzner.cloud/use-private-ip: "true"
-    providers:
-      kubernetesGateway:
-        enabled: true
-    gateway:
-      enabled: true
-      listeners:
-        web:
-          port: 8000
-          protocol: HTTP
-          namespacePolicy:
-            from: All
-        websecure:
-          port: 8443
-          protocol: HTTPS
-          namespacePolicy:
-            from: All
-          certificateRefs:
-            - name: wildcard-dev-spoletum-tls
-              kind: Secret
-          mode: Terminate
