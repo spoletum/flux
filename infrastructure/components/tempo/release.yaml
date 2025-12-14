@@ -1,0 +1,34 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: tempo
+      version: 1.24.1
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+      interval: 12h
+  releaseName: tempo
+  targetNamespace: tempo
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Minimal configuration - chart defaults already enable OTLP receivers
+    # No values needed for basic OpenTelemetry collection
+    # Defaults provide:
+    # - OTLP gRPC (4317) and HTTP (4318) receivers
+    # - Jaeger receivers
+    # - Local storage backend
+    # - Single replica

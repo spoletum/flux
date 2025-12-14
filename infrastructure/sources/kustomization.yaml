@@ -5,3 +5,4 @@ resources:
   - traefik.yaml
   - goauthentik.yaml
   - dapr.yaml
+  - grafana.yaml
