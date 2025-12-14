@@ -1,6 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+  - ../../../../infrastructure/sources
+  - ../../../../infrastructure/base/cert-manager
+  - ../../../../infrastructure/base/dapr
   - ../../../../infrastructure/base/traefik
 patches:
   - target:
