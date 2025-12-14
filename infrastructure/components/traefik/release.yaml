@@ -28,7 +28,7 @@ spec:
     tracing:
       serviceName: traefik
       sampleRate: 1.0
-      oltp:
+      otlp:
         enabled: true
         grpc:
           enabled: true
