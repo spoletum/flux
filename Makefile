@@ -1,7 +1,11 @@
 .PHONY: dev
 
+help:
+	@echo "Makefile targets:"
+	@echo "  bootstrap-dev    Bootstrap dev environment with Flux"
+
 # Bootstrap dev environment with Flux
-dev:
+bootstrap-dev:
 	@echo "Creating flux-system namespace..."
 	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
 	

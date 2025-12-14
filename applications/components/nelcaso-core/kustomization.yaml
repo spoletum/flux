@@ -5,4 +5,4 @@ resources:
   - ghcr-pull-secret.sops.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - route.yaml

@@ -4,20 +4,24 @@ metadata:
   name: core
   namespace: nelcaso
   labels:
-    app.kubernetes.io/name: core
-    app.kubernetes.io/instance: core
+    app.kubernetes.io/name: nelcaso-core
+    app.kubernetes.io/instance: nelcaso-core
     app.kubernetes.io/managed-by: flux
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: core
-      app.kubernetes.io/instance: core
+      app.kubernetes.io/name: nelcaso-core
+      app.kubernetes.io/instance: nelcaso-core
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: core
-        app.kubernetes.io/instance: core
+        app.kubernetes.io/name: nelcaso-core
+        app.kubernetes.io/instance: nelcaso-core
+      annotations:
+        dapr.io/app-id: nelcaso-core
+        dapr.io/app-port: "8080"
+        dapr.io/enabled: "true"
     spec:
       imagePullSecrets:
         - name: ghcr-pull-secret
@@ -28,18 +32,6 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-            initialDelaySeconds: 5
-            periodSeconds: 5
           resources:
             requests:
               cpu: 100m
