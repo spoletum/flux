@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - ../../../infrastructure/base/authentik
   - authentik-credentials.sops.yaml
-  - external-secret.yaml
+  - authentik-values.sops.yaml
 patches:
   # Remove the old authentik-values-secret from base
   - target:
