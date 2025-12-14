@@ -23,14 +23,13 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
-  name: nelcaso-to-traefik
-  namespace: traefik
+  name: traefik-to-nelcaso
+  namespace: nelcaso
 spec:
   from:
     - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      namespace: nelcaso
+      kind: Gateway
+      namespace: traefik
   to:
     - group: ""
       kind: Service
-      namespace: nelcaso
