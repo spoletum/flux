@@ -11,7 +11,7 @@ spec:
   ports:
     - name: http
       port: 3500
-      targetPort: http
+      targetPort: dapr-http
       protocol: TCP
   selector:
     app.kubernetes.io/name: nelcaso-core
