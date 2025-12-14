@@ -1,14 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../../infrastructure/base/authentik
+  - ../../../../infrastructure/base/authentik
   - authentik-credentials.sops.yaml
   - authentik-values.sops.yaml
-patches:
-  # Remove the old authentik-values-secret from base
-  - target:
-      kind: Secret
-      name: authentik-values
-      namespace: flux-system
-    patch: |
-      $patch: delete
