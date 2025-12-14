@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../infrastructure/base/traefik
+patches:
+  - target:
+      kind: HelmRelease
+      name: traefik
+    patch: |-
+      - op: replace
+        path: /spec/values/service/annotations/load-balancer.hetzner.cloud~1name
+        value: dev
