@@ -7,37 +7,42 @@ This repository manages infrastructure and applications using FluxCD v2 with a m
 ```
 flux/
 ├── infrastructure/                  # Shared infrastructure components
-│   ├── sources/                    # HelmRepository definitions
+│   ├── sources/                     # HelmRepository definitions
 │   │   ├── jetstack.yaml
 │   │   ├── traefik.yaml
 │   │   ├── goauthentik.yaml
-│   │   ├── external-secrets.yaml
-│   │   └── dapr.yaml
-│   └── components/                 # Reusable component definitions
-│       ├── cert-manager/           # cert-manager
+│   │   ├── grafana.yaml
+│   │   └── prometheus-community.yaml
+│   └── components/                  # Reusable component definitions
+│       ├── cert-manager/            # cert-manager
 │       │   ├── namespace.yaml
 │       │   ├── release.yaml
 │       │   ├── letsencrypt-issuer.yaml
 │       │   └── kustomization.yaml
-│       ├── traefik/                # Traefik ingress controller
-│       ├── authentik/              # Authentik SSO provider
-│       └── dapr/                   # Dapr runtime
-└── clusters/                       # Environment-specific configurations
-    └── dev/                        # Development environment
-        ├── flux-system/            # Flux bootstrap components
-        ├── kustomization.yaml      # Entry point - references infrastructure/
-        └── infrastructure/         # Kustomization CRs per component
-            ├── sources.yaml        # Deploys infrastructure/sources
-            ├── cert-manager.yaml   # Deploys infrastructure/components/cert-manager
-            ├── dapr.yaml           # Deploys infrastructure/components/dapr
-            ├── traefik.yaml        # Deploys infrastructure/components/traefik + dev patches
-            └── kustomization.yaml  # Lists all CRs above
+│       ├── traefik/                 # Traefik ingress controller
+│       ├── authentik/               # Authentik SSO provider
+│       ├── tempo/                   # Tempo tracing backend
+│       ├── prometheus/              # Prometheus metrics stack
+│       └── grafana/                 # Grafana dashboards
+└── clusters/                        # Environment-specific configurations
+    └── dev/                         # Development environment
+        ├── flux-system/             # Flux bootstrap components
+        ├── kustomization.yaml       # Entry point - references infrastructure/
+        └── infrastructure/          # Kustomization CRs per component
+            ├── sources.yaml         # Deploys infrastructure/sources
+            ├── cert-manager.yaml    # Deploys infrastructure/components/cert-manager
+            ├── traefik.yaml         # Deploys infrastructure/components/traefik + dev patches
+            ├── authentik.yaml       # Deploys infrastructure/components/authentik
+            ├── tempo.yaml           # Deploys infrastructure/components/tempo
+            ├── prometheus.yaml      # Deploys infrastructure/components/prometheus
+            ├── grafana.yaml         # Deploys infrastructure/components/grafana
+            └── kustomization.yaml   # Lists all CRs above
 ```
 
 ## Architecture
 
 ### Component-Based Infrastructure
-Each infrastructure component (cert-manager, traefik, dapr, etc.) is defined once in `infrastructure/components/`. Components are:
+Each infrastructure component (cert-manager, traefik, tempo, etc.) is defined once in `infrastructure/components/`. Components are:
 - Self-contained with namespace, release, and config
 - Deployed via separate Flux Kustomization CRs
 - Independently reconciled and versioned
@@ -55,7 +60,6 @@ Flux automatically handles deployment order:
 infrastructure-sources (Helm repos)
     ↓
 infrastructure-cert-manager
-infrastructure-dapr
     ↓
 infrastructure-traefik (depends on cert-manager)
 ```
@@ -71,9 +75,11 @@ infrastructure-traefik (depends on cert-manager)
 
 ### Infrastructure Components
 1. **cert-manager** - TLS certificate management with Let's Encrypt
-2. **Dapr** - Distributed application runtime for microservices
-3. **Traefik** - Ingress controller (environment-specific patches applied)
-4. **Authentik** - SSO provider (environment-specific configuration)
+2. **Traefik** - Ingress controller (environment-specific patches applied)
+3. **Authentik** - SSO provider (environment-specific configuration)
+4. **Tempo** - Trace storage backend
+5. **Prometheus** - Metrics collection
+6. **Grafana** - Dashboards and visualization
 
 ## Bootstrap New Environment
 
@@ -230,8 +236,11 @@ flux reconcile kustomization flux-system --with-source
    resources:
      - sources.yaml
      - cert-manager.yaml
-     - dapr.yaml
      - traefik.yaml
+     - authentik.yaml
+     - tempo.yaml
+     - prometheus.yaml
+     - grafana.yaml
      - myapp.yaml  # Add this
    ```
 5. **Commit and reconcile**: Flux will automatically deploy the new component
@@ -240,7 +249,7 @@ flux reconcile kustomization flux-system --with-source
 
 Flux manages dependencies automatically via `dependsOn` in Kustomization CRs:
 1. `infrastructure-sources` - All Helm repositories
-2. `infrastructure-cert-manager`, `infrastructure-dapr` - Parallel (depend on sources)
+2. `infrastructure-cert-manager` - Depends on sources
 3. `infrastructure-traefik` - Depends on sources + cert-manager
 
 ## Troubleshooting

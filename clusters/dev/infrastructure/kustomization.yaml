@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - sources.yaml
   - cert-manager.yaml
-  - dapr.yaml
   - traefik.yaml
   - authentik.yaml
   - tempo.yaml

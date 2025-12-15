@@ -86,7 +86,10 @@ Each infrastructure component gets its own Kustomization CR:
 - `clusters/dev/infrastructure/sources.yaml`
 - `clusters/dev/infrastructure/cert-manager.yaml`
 - `clusters/dev/infrastructure/traefik.yaml`
-- `clusters/dev/infrastructure/dapr.yaml`
+- `clusters/dev/infrastructure/authentik.yaml`
+- `clusters/dev/infrastructure/tempo.yaml`
+- `clusters/dev/infrastructure/prometheus.yaml`
+- `clusters/dev/infrastructure/grafana.yaml`
 
 Benefits:
 - Independent reconciliation schedules

@@ -19,11 +19,6 @@ spec:
         app.kubernetes.io/name: nelcaso-core
         app.kubernetes.io/instance: nelcaso-core
       annotations:
-        dapr.io/app-id: nelcaso-core
-        dapr.io/app-port: "8080"
-        dapr.io/enabled: "true"
-        dapr.io/config: "tracing"
-        dapr.io/sidecar-listen-addresses: "0.0.0.0"
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"

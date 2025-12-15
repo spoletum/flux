@@ -4,6 +4,5 @@ resources:
   - jetstack.yaml
   - traefik.yaml
   - goauthentik.yaml
-  - dapr.yaml
   - grafana.yaml
   - prometheus-community.yaml
