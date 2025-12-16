@@ -64,7 +64,7 @@ spec:
             uid: loki
             type: loki
             access: proxy
-            url: http://loki-gateway.loki:3100
+            url: http://loki-gateway.loki:80
             isDefault: true
             editable: true
             jsonData:

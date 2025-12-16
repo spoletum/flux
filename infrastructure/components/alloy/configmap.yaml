@@ -56,6 +56,6 @@ data:
     // Forward to Loki
     loki.write "endpoint" {
       endpoint {
-        url = "http://loki-gateway.loki:3100/loki/api/v1/push"
+        url = "http://loki-gateway.loki:80/loki/api/v1/push"
       }
     }
