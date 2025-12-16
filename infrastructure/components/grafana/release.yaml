@@ -25,28 +25,122 @@ spec:
     remediation:
       retries: 3
   values:
-    # Datasource configuration
+    # Enable persistence for dashboards and settings
+    persistence:
+      enabled: true
+      size: 5Gi
+
+    # Configure Authentik SSO
+    grafana.ini:
+      server:
+        root_url: https://grafana.dev.spoletum.net/
+      auth.generic_oauth:
+        enabled: true
+        name: Authentik
+        client_id: $__file{/etc/secrets/oauth/client_id}
+        client_secret: $__file{/etc/secrets/oauth/client_secret}
+        scopes: openid email profile
+        auth_url: https://auth.dev.spoletum.net/application/o/authorize/
+        token_url: https://auth.dev.spoletum.net/application/o/token/
+        api_url: https://auth.dev.spoletum.net/application/o/userinfo/
+        role_attribute_path: contains(groups, 'Grafana Admins') && 'Admin' || 'Viewer'
+        allow_sign_up: true
+
+    # Mount OAuth secret
+    extraSecretMounts:
+      - name: oauth-secret
+        secretName: grafana-oauth
+        defaultMode: 0440
+        mountPath: /etc/secrets/oauth
+        readOnly: true
+
+    # Datasource configuration with complete correlation
     datasources:
       datasources.yaml:
         apiVersion: 1
         datasources:
-          - name: Prometheus
-            type: prometheus
+          # Loki - DEFAULT datasource for logs
+          - name: Loki
+            uid: loki
+            type: loki
             access: proxy
-            url: http://prometheus-server.prometheus:80
+            url: http://loki-gateway.loki:3100
             isDefault: true
             editable: true
+            jsonData:
+              derivedFields:
+                - datasourceUid: tempo
+                  matcherRegex: "traceID=(\\w+)"
+                  name: TraceID
+                  url: "$${__value.raw}"
+
+          # Tempo - with traces-to-logs and traces-to-metrics
           - name: Tempo
+            uid: tempo
             type: tempo
             access: proxy
             url: http://tempo.tempo:3200
             isDefault: false
             editable: true
             jsonData:
-              tracesToLogsV2:
+              httpMethod: GET
+              nodeGraph:
+                enabled: true
+              tracesToLogs:
+                datasourceUid: loki
+                filterByTraceID: true
+                filterBySpanID: false
+                tags: ['job', 'namespace', 'pod', 'container']
+              tracesToMetrics:
                 datasourceUid: prometheus
-    
-    # Minimal resource configuration
+                tags:
+                  - key: 'service.name'
+                    value: 'service'
+
+          # Prometheus - with exemplar support
+          - name: Prometheus
+            uid: prometheus
+            type: prometheus
+            access: proxy
+            url: http://prometheus-server.prometheus:80
+            isDefault: false
+            editable: true
+            jsonData:
+              httpMethod: POST
+              exemplarTraceIdDestinations:
+                - datasourceUid: tempo
+                  name: TraceID
+
+    # Dashboard sidecar configuration
+    sidecar:
+      dashboards:
+        enabled: true
+        searchNamespace: ALL
+        label: grafana_dashboard
+        folderAnnotation: grafana_folder
+
+    # Pre-load community dashboards
+    dashboards:
+      kubernetes:
+        k8s-cluster:
+          gnetId: 7249
+          revision: 1
+          datasource: Prometheus
+        k8s-pods:
+          gnetId: 6417
+          revision: 1
+          datasource: Prometheus
+        node-exporter:
+          gnetId: 1860
+          revision: 33
+          datasource: Prometheus
+      loki:
+        loki-logs:
+          gnetId: 13639
+          revision: 2
+          datasource: Loki
+
+    # Resource configuration
     resources:
       limits:
         cpu: 500m

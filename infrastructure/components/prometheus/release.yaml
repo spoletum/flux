@@ -25,24 +25,88 @@ spec:
     remediation:
       retries: 3
   values:
-    # Minimal Prometheus setup
+    # AlertManager - enabled for proactive alerting
     alertmanager:
-      enabled: false
-    
+      enabled: true
+      persistence:
+        enabled: true
+        size: 2Gi
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+      config:
+        global:
+          resolve_timeout: 5m
+        route:
+          group_by: ['alertname', 'cluster', 'service']
+          group_wait: 10s
+          group_interval: 10s
+          repeat_interval: 12h
+          receiver: 'null'
+        receivers:
+          - name: 'null'
+
+    # Enable exporters for cluster monitoring
     kube-state-metrics:
-      enabled: false
-    
+      enabled: true
+
     prometheus-node-exporter:
-      enabled: false
-    
+      enabled: true
+      hostNetwork: true
+      hostPID: true
+
     prometheus-pushgateway:
       enabled: false
-    
+
     server:
+      # Global configuration matching nelcaso/core
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+        external_labels:
+          cluster: 'dev'
+          environment: 'development'
+
       retention: "7d"
       persistentVolume:
         enabled: true
         size: 10Gi
+
+      # Add pod annotation-based scraping for applications
+      extraScrapeConfigs: |
+        - job_name: 'kubernetes-pods'
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            # Only scrape pods with prometheus.io/scrape annotation
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+            # Use custom path if specified
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            # Use custom port if specified
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              target_label: __address__
+            # Add namespace label
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            # Add pod label
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            # Add container label
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              target_label: container
+
       resources:
         limits:
           cpu: 500m
