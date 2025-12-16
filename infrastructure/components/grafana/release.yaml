@@ -121,7 +121,7 @@ spec:
 
     # Pre-load community dashboards
     dashboards:
-      kubernetes:
+      default:
         k8s-cluster:
           gnetId: 7249
           revision: 1
@@ -134,7 +134,6 @@ spec:
           gnetId: 1860
           revision: 33
           datasource: Prometheus
-      loki:
         loki-logs:
           gnetId: 13639
           revision: 2
