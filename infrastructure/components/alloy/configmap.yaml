@@ -57,9 +57,5 @@ data:
     loki.write "endpoint" {
       endpoint {
         url = "http://loki-gateway.loki:80/loki/api/v1/push"
-
-        headers = {
-          "X-Scope-OrgID" = "1",
-        }
       }
     }
