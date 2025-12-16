@@ -25,10 +25,27 @@ spec:
     remediation:
       retries: 3
   values:
-    # Minimal configuration - chart defaults already enable OTLP receivers
-    # No values needed for basic OpenTelemetry collection
-    # Defaults provide:
-    # - OTLP gRPC (4317) and HTTP (4318) receivers
-    # - Jaeger receivers
-    # - Local storage backend
-    # - Single replica
+    # Configure Tempo for single-instance with metrics generator
+    tempo:
+      metricsGenerator:
+        enabled: true
+        remoteWriteUrl: "http://prometheus-server.prometheus:80/api/v1/write"
+
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
+
+      # Disable memberlist for single instance
+      memberlist:
+        enabled: false
+
+    # Resource limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
