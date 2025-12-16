@@ -74,7 +74,7 @@ spec:
                   name: TraceID
                   url: "$${__value.raw}"
 
-          # Tempo - with traces-to-logs and traces-to-metrics
+          # Tempo - with traces-to-logs integration
           - name: Tempo
             uid: tempo
             type: tempo
@@ -91,11 +91,6 @@ spec:
                 filterByTraceID: true
                 filterBySpanID: false
                 tags: ['job', 'namespace', 'pod', 'container']
-              tracesToMetrics:
-                datasourceUid: prometheus
-                tags:
-                  - key: 'service.name'
-                    value: 'service'
 
           # Prometheus - with exemplar support
           - name: Prometheus

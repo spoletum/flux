@@ -25,21 +25,13 @@ spec:
     remediation:
       retries: 3
   values:
-    # Configure Tempo for single-instance with metrics generator
+    # Configure Tempo for single-instance mode
     tempo:
-      metricsGenerator:
-        enabled: true
-        remoteWriteUrl: "http://prometheus-server.prometheus:80/api/v1/write"
-
       storage:
         trace:
           backend: local
           local:
             path: /var/tempo/traces
-
-      # Disable memberlist for single instance
-      memberlist:
-        enabled: false
 
     # Resource limits
     resources:
