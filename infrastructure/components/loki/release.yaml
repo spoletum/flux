@@ -45,6 +45,9 @@ spec:
       storage:
         type: filesystem
 
+      limits_config:
+        volume_enabled: true
+
     # Single binary configuration
     singleBinary:
       replicas: 1
