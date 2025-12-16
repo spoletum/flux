@@ -58,3 +58,11 @@ spec:
         requests:
           cpu: 100m
           memory: 256Mi
+
+    # Explicitly disable other deployment modes
+    backend:
+      replicas: 0
+    read:
+      replicas: 0
+    write:
+      replicas: 0
