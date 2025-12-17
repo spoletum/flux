@@ -24,7 +24,45 @@ spec:
           values:
             tempo:
               metricsGenerator:
-                enabled: false
+                enabled: true
+                remoteWriteUrl: "http://prometheus-server.prometheus:80/api/v1/write"
+            # Override config to add inmemory ring for metrics-generator
+            config: |
+              multitenancy_enabled: false
+              usage_report:
+                reporting_enabled: false
+              compactor:
+                compaction:
+                  block_retention: 48h
+              distributor:
+                receivers:
+                  otlp:
+                    protocols:
+                      grpc:
+                        endpoint: 0.0.0.0:4317
+                      http:
+                        endpoint: 0.0.0.0:4318
+              ingester: {}
+              server:
+                http_listen_port: 3200
+              storage:
+                trace:
+                  backend: local
+                  local:
+                    path: /var/tempo/traces
+                  wal:
+                    path: /var/tempo/wal
+              querier: {}
+              query_frontend: {}
+              metrics_generator:
+                ring:
+                  kvstore:
+                    store: inmemory
+                storage:
+                  path: /var/tempo/generator/wal
+                  remote_write:
+                    - url: http://prometheus-server.prometheus:80/api/v1/write
+                      send_exemplars: true
       target:
         kind: HelmRelease
         name: tempo
