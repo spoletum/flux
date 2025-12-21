@@ -39,7 +39,7 @@ spec:
     host: chat.dev.spoletum.net  # Replace with your Rocket.Chat domain
     ingress:
       enabled: true
-      ingressClassName: nginx  # Specify the installed ingress controller in the K8s cluster
+      ingressClassName: traefik  # Specify the installed ingress controller in the K8s cluster
       annotations:
         cert-manager.io/cluster-issuer: letencrypt  # Replace with your ClusterIssuer name
       tls:
