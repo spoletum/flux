@@ -13,6 +13,7 @@ spec:
     kind: GitRepository
     name: flux-system
   dependsOn:
+    - name: applications-sources
     - name: infrastructure-traefik
     - name: infrastructure-cert-manager
   decryption:
