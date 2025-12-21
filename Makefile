@@ -25,3 +25,12 @@ bootstrap-dev:
 	
 	@echo "✅ Dev environment bootstrapped successfully!"
 	@echo "Watch deployment with: flux logs --follow"
+
+bootstrap-local:
+	kubectl config use-context kind-kind-cluster
+	flux bootstrap github \
+		--owner=spoletum \
+		--repository=flux \
+		--branch=main \
+		--path=clusters/local \
+		--personal
