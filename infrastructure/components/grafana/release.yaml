@@ -188,7 +188,7 @@ spec:
                 for: 5m
                 annotations:
                   summary: "Prometheus disk usage is above 80%"
-                  description: "Prometheus disk usage is {{ $value }}%. Current capacity may be insufficient."
+                  description: 'Prometheus disk usage is {{ "{{ $value }}" }}%. Current capacity may be insufficient.'
                 labels:
                   severity: warning
 
