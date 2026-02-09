@@ -113,6 +113,10 @@ spec:
         searchNamespace: ALL
         label: grafana_dashboard
         folderAnnotation: grafana_folder
+      alerts:
+        enabled: true
+        searchNamespace: ALL
+        label: grafana_alert
 
     # Pre-load community dashboards
     dashboards:
@@ -133,6 +137,86 @@ spec:
           gnetId: 13639
           revision: 2
           datasource: Loki
+
+    # Alerting rules
+    alerting:
+      rules.yaml:
+        apiVersion: 1
+        groups:
+          - orgId: 1
+            name: prometheus-storage
+            folder: Infrastructure
+            interval: 60s
+            rules:
+              - uid: prometheus-disk-usage
+                title: Prometheus Disk Usage High
+                condition: B
+                data:
+                  - refId: A
+                    relativeTimeRange:
+                      from: 600
+                      to: 0
+                    datasourceUid: prometheus
+                    model:
+                      expr: |
+                        (node_filesystem_size_bytes{mountpoint="/data"} - node_filesystem_avail_bytes{mountpoint="/data"}) / node_filesystem_size_bytes{mountpoint="/data"} * 100
+                      refId: A
+                  - refId: B
+                    relativeTimeRange:
+                      from: 0
+                      to: 0
+                    datasourceUid: __expr__
+                    model:
+                      conditions:
+                        - evaluator:
+                            params:
+                              - 80
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params: []
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                      expression: A
+                      refId: B
+                      type: threshold
+                noDataState: NoData
+                execErrState: Error
+                for: 5m
+                annotations:
+                  summary: "Prometheus disk usage is above 80%"
+                  description: "Prometheus disk usage is {{ $value }}%. Current capacity may be insufficient."
+                labels:
+                  severity: warning
+
+    # Contact points configuration
+    alerting_contact_points.yaml:
+      apiVersion: 1
+      contactPoints:
+        - orgId: 1
+          name: default
+          receivers:
+            - uid: default-email
+              type: email
+              settings:
+                addresses: "spoletum@spoletum.net"
+                singleEmail: true
+
+    # Notification policies
+    alerting_policies.yaml:
+      apiVersion: 1
+      policies:
+        - orgId: 1
+          receiver: default
+          group_by:
+            - alertname
+            - severity
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 12h
 
     # Resource configuration
     resources:
