@@ -114,3 +114,16 @@ spec:
         requests:
           cpu: 100m
           memory: 256Mi
+
+      # Increase readiness probe delays for large WAL replay
+      readinessProbe:
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 6
+        timeoutSeconds: 5
+
+      livenessProbe:
+        initialDelaySeconds: 300
+        periodSeconds: 10
+        failureThreshold: 6
+        timeoutSeconds: 5
