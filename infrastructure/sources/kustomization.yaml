@@ -5,4 +5,5 @@ resources:
   - traefik.yaml
   - goauthentik.yaml
   - grafana.yaml
+  - grafana-community.yaml
   - prometheus-community.yaml
