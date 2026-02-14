@@ -11,10 +11,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - grafana.dev.spoletum.net
+        - grafana.spoletum.net
       secretName: grafana-tls
   rules:
-    - host: grafana.dev.spoletum.net
+    - host: grafana.spoletum.net
       http:
         paths:
           - path: /
